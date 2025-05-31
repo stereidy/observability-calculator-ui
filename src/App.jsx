@@ -99,8 +99,8 @@ export default function App() {
     averageSalary: 130000,
     affectedDashboards: 12,
     dashboardDowntimeHours: 4,
-    badDecisionCost: 25000,
-    badDecisionsPerMonth: 3
+    productivityGainPercent: 10,
+    hourlyBusinessValue: 150
   });
 
   const [synqCost, setSynqCost] = useState(60000);
@@ -109,20 +109,27 @@ export default function App() {
     setInputs(prev => ({ ...prev, [field]: value }));
   };
 
+  // Calculations
   const monthlyTeamCost = (inputs.dataTeamSize * inputs.averageSalary * (inputs.timeOnDataQuality / 100)) / 12;
   const monthlyDashboardCost = inputs.affectedDashboards * inputs.dashboardDowntimeHours * (inputs.averageSalary / 12 / 160);
-  const monthlyBadDecisionCost = inputs.badDecisionsPerMonth * inputs.badDecisionCost;
-  const totalMonthlyCost = monthlyTeamCost + monthlyDashboardCost + monthlyBadDecisionCost;
+  const monthlyHoursWorked = inputs.dataTeamSize * 160;
+  const hoursGainedPerMonth = monthlyHoursWorked * (inputs.productivityGainPercent / 100);
+  const monthlyProductivityValue = hoursGainedPerMonth * inputs.hourlyBusinessValue;
+  const totalMonthlyCost = monthlyTeamCost + monthlyDashboardCost;
   const annualCost = totalMonthlyCost * 12;
+  const annualProductivityGain = monthlyProductivityValue * 12;
   const monthlySavings = totalMonthlyCost * 0.65;
   const annualSavings = monthlySavings * 12;
-  const netGain = annualSavings - synqCost;
+  const totalAnnualBenefit = annualSavings + annualProductivityGain;
+  const netGain = totalAnnualBenefit - synqCost;
   const roiPercentage = synqCost > 0 ? ((netGain / synqCost) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
       <SupercellIntro />
+      
       <div className="container mx-auto px-4 py-12 max-w-7xl">
+        {/* Header */}
         <div className="text-center mb-12">
           <div className="flex justify-center mb-6">
             <div className="p-4 bg-gradient-to-r from-blue-600 to-slate-700 rounded-2xl shadow-lg">
@@ -140,8 +147,11 @@ export default function App() {
           </p>
         </div>
 
+        {/* Input and Results Section */}
         <div className="grid lg:grid-cols-2 gap-8">
+          {/* Left Column - Inputs */}
           <div className="space-y-6">
+            {/* Team Inputs */}
             <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
               <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center">
                 <Users className="w-6 h-6 mr-3 text-blue-600" />
@@ -174,6 +184,7 @@ export default function App() {
               </div>
             </div>
 
+            {/* Business Impact Inputs */}
             <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100 space-y-6">
               <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center">
                 <BarChart3 className="w-6 h-6 mr-3 text-orange-600" />
@@ -201,31 +212,34 @@ export default function App() {
                 />
               </div>
 
-              <div className="bg-gradient-to-br from-red-50 to-pink-50 p-6 rounded-xl border border-red-100 space-y-4">
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border border-green-100 space-y-4">
                 <h3 className="font-semibold text-slate-800 flex items-center">
-                  <TrendingUp className="w-5 h-5 mr-2 text-red-500" />
-                  Game Decisions Based on Bad Data
+                  <TrendingUp className="w-5 h-5 mr-2 text-green-500" />
+                  Team Productivity Gains with SYNQ
                 </h3>
                 <InputField
-                  label="Poor decisions per month"
-                  value={inputs.badDecisionsPerMonth}
-                  onChange={(value) => updateInput('badDecisionsPerMonth', value)}
-                  placeholder="e.g., 3"
-                  description="Feature launches, monetization changes, player engagement decisions"
+                  label="Expected productivity gain from automation"
+                  value={inputs.productivityGainPercent}
+                  onChange={(value) => updateInput('productivityGainPercent', value)}
+                  placeholder="e.g., 10"
+                  suffix="%"
+                  description="Additional time freed up for high-value feature development and analytics"
                 />
                 <InputField
-                  label="Average cost per poor decision"
-                  value={inputs.badDecisionCost}
-                  onChange={(value) => updateInput('badDecisionCost', value)}
-                  placeholder="e.g., 25000"
+                  label="Business value per developer hour"
+                  value={inputs.hourlyBusinessValue}
+                  onChange={(value) => updateInput('hourlyBusinessValue', value)}
+                  placeholder="e.g., 150"
                   prefix="$"
-                  description="Lost revenue, player churn, development rework costs"
+                  description="Revenue impact from feature development, optimization, and analytics projects"
                 />
               </div>
             </div>
           </div>
 
+          {/* Right Column - Results */}
           <div className="space-y-6">
+            {/* Current Costs */}
             <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100 space-y-4">
               <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center">
                 <DollarSign className="w-6 h-6 mr-3 text-red-600" />
@@ -235,84 +249,154 @@ export default function App() {
               <ResultCard
                 icon={Users}
                 title="Monthly Team Overhead"
-                value={`$${monthlyTeamCost.toLocaleString()}`}
+                value={`$${Math.round(monthlyTeamCost).toLocaleString()}`}
                 subtitle="Team time spent on data quality issues"
                 gradient="from-blue-500 to-slate-600"
               />
               <ResultCard
                 icon={AlertTriangle}
-                title="Monthly Total Impact"
-                value={`$${totalMonthlyCost.toLocaleString()}`}
-                subtitle="All data quality related costs + decisions"
+                title="Monthly Total Cost"
+                value={`$${Math.round(totalMonthlyCost).toLocaleString()}`}
+                subtitle="Team overhead + dashboard downtime costs"
                 gradient="from-orange-500 to-red-600"
               />
               <ResultCard
                 icon={TrendingUp}
                 title="Annual Cost Without SYNQ"
-                value={`$${annualCost.toLocaleString()}`}
+                value={`$${Math.round(annualCost).toLocaleString()}`}
                 subtitle="Projected annual impact of data quality issues"
                 gradient="from-red-500 to-pink-600"
               />
             </div>
 
-            <div className="bg-gradient-to-br from-blue-700 via-slate-800 to-blue-900 rounded-2xl shadow-xl p-8 text-white relative overflow-hidden space-y-6">
-              <div className="relative">
-                <h2 className="text-2xl font-bold flex items-center mb-6">
-                  <Zap className="w-6 h-6 mr-3" />
-                  ROI with SYNQ Data Observability
-                </h2>
-                
-                <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-6 mb-6 border border-white border-opacity-20">
-                  <div className="text-sm opacity-90 mb-2">SYNQ Investment Tier</div>
-                  <select
-                    className="w-full border border-slate-300 rounded-lg px-4 py-3 text-slate-800 text-lg font-medium"
-                    value={synqCost}
-                    onChange={(e) => setSynqCost(Number(e.target.value))}
-                  >
-                    <option value={15000}>Starter - $15,000/year</option>
-                    <option value={30000}>Professional - $30,000/year</option>
-                    <option value={60000}>Enterprise - $60,000/year</option>
-                    <option value={120000}>Enterprise Plus - $120,000/year</option>
-                  </select>
-                </div>
+            {/* Productivity Impact */}
+            <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100 space-y-4">
+              <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center">
+                <TrendingUp className="w-6 h-6 mr-3 text-green-600" />
+                Productivity & Business Impact
+              </h2>
 
-                <div className="grid md:grid-cols-2 gap-6 mb-6">
-                  <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 border border-white border-opacity-20">
-                    <div className="text-sm opacity-90 mb-1">Monthly Savings (65% reduction)</div>
-                    <div className="text-3xl font-bold text-green-300">${monthlySavings.toLocaleString()}</div>
-                  </div>
-                  <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 border border-white border-opacity-20">
-                    <div className="text-sm opacity-90 mb-1">Annual Savings</div>
-                    <div className="text-3xl font-bold text-green-300">${annualSavings.toLocaleString()}</div>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 mb-4">
-                  <div className="text-white">
-                    <div className="text-sm opacity-90 mb-2">Net Annual Gain After SYNQ</div>
-                    <div className="text-4xl font-bold">${netGain.toLocaleString()}</div>
-                    <div className="text-lg mt-2">ROI: {roiPercentage.toFixed(0)}%</div>
-                  </div>
-                </div>
-
-                <div className="bg-yellow-500 bg-opacity-20 border border-yellow-400 border-opacity-30 rounded-xl p-4">
-                  <div className="flex items-center text-yellow-300 mb-2">
-                    <Star className="w-5 h-5 mr-2" />
-                    <span className="font-medium">Gaming Industry Benefit</span>
-                  </div>
-                  <p className="text-sm text-yellow-100">
-                    Enhanced player experience through reliable game analytics, faster incident resolution, 
-                    and data-driven feature decisions that drive player engagement and revenue.
-                  </p>
-                </div>
-              </div>
+              <ResultCard
+                icon={Zap}
+                title="Hours Freed Up Per Month"
+                value={`${Math.round(hoursGainedPerMonth)} hrs`}
+                subtitle={`${inputs.productivityGainPercent}% productivity gain across ${inputs.dataTeamSize} team members`}
+                gradient="from-green-500 to-emerald-600"
+              />
+              <ResultCard
+                icon={DollarSign}
+                title="Monthly Business Value"
+                value={`$${Math.round(monthlyProductivityValue).toLocaleString()}`}
+                subtitle="Value from time redirected to high-impact projects"
+                gradient="from-blue-500 to-green-600"
+              />
+              <ResultCard
+                icon={Target}
+                title="Annual Productivity Gain"
+                value={`$${Math.round(annualProductivityGain).toLocaleString()}`}
+                subtitle="Total business value from improved team efficiency"
+                gradient="from-purple-500 to-blue-600"
+              />
             </div>
           </div>
         </div>
 
-        {/* Enhanced Why SYNQ Section with Hero Animation */}
+        {/* Full-width ROI Section */}
+        <div className="mt-12 bg-gradient-to-br from-blue-700 via-slate-800 to-blue-900 rounded-3xl shadow-2xl text-white relative overflow-hidden">
+          <div className="absolute inset-0 opacity-20">
+            <img 
+              src="https://cdn.prod.website-files.com/67ac98ad91c902dafd02d636/67ac98ad91c902dafd02d680_diagram.as0DzT7j.webp" 
+              alt="SYNQ Data Observability Platform" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          
+          <div className="relative p-12">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold flex items-center justify-center mb-6">
+                <Zap className="w-8 h-8 mr-4" />
+                ROI with SYNQ Data Observability
+              </h2>
+              <p className="text-xl text-blue-100 max-w-4xl mx-auto">
+                Transform your data operations with enterprise-grade observability and AI-powered automation
+              </p>
+            </div>
+
+            <div className="grid lg:grid-cols-3 gap-8 mb-12">
+              {/* Investment Column */}
+              <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl p-8 border border-white border-opacity-20">
+                <h3 className="text-2xl font-bold text-white mb-6">SYNQ Investment</h3>
+                <div className="text-sm opacity-90 mb-4">Choose Your Tier</div>
+                <select
+                  className="w-full border border-slate-300 rounded-lg px-4 py-3 text-slate-800 text-lg font-medium mb-6"
+                  value={synqCost}
+                  onChange={(e) => setSynqCost(Number(e.target.value))}
+                >
+                  <option value={15000}>Starter - $15,000/year</option>
+                  <option value={30000}>Professional - $30,000/year</option>
+                  <option value={60000}>Enterprise - $60,000/year</option>
+                  <option value={120000}>Enterprise Plus - $120,000/year</option>
+                </select>
+                <div className="text-center">
+                  <div className="text-sm opacity-90 mb-2">Annual Investment</div>
+                  <div className="text-3xl font-bold text-yellow-300">${synqCost.toLocaleString()}</div>
+                </div>
+              </div>
+
+              {/* Monthly Benefits Column */}
+              <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl p-8 border border-white border-opacity-20">
+                <h3 className="text-2xl font-bold text-white mb-6">Monthly Benefits</h3>
+                <div className="space-y-6">
+                  <div>
+                    <div className="text-sm opacity-90 mb-2">Cost Savings (65% reduction)</div>
+                    <div className="text-2xl font-bold text-green-300">${Math.round(monthlySavings).toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm opacity-90 mb-2">Productivity Value</div>
+                    <div className="text-2xl font-bold text-blue-300">${Math.round(monthlyProductivityValue).toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm opacity-90 mb-2">Total Monthly Benefit</div>
+                    <div className="text-2xl font-bold text-white">${Math.round(monthlySavings + monthlyProductivityValue).toLocaleString()}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Annual ROI Column */}
+              <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-8">
+                <h3 className="text-2xl font-bold text-white mb-6">Annual ROI</h3>
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-sm opacity-90 mb-2">Total Annual Benefit</div>
+                    <div className="text-3xl font-bold text-white">${Math.round(totalAnnualBenefit).toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm opacity-90 mb-2">Net Gain After SYNQ</div>
+                    <div className="text-2xl font-bold text-white">${Math.round(netGain).toLocaleString()}</div>
+                  </div>
+                  <div className="bg-white bg-opacity-20 rounded-xl p-4 text-center">
+                    <div className="text-sm opacity-90 mb-2">Return on Investment</div>
+                    <div className="text-4xl font-bold text-white">{Math.round(roiPercentage)}%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-yellow-500 bg-opacity-20 border border-yellow-400 border-opacity-30 rounded-2xl p-8 text-center">
+              <div className="flex items-center justify-center text-yellow-300 mb-4">
+                <Star className="w-6 h-6 mr-3" />
+                <span className="font-semibold text-lg">Gaming Industry Impact</span>
+              </div>
+              <p className="text-yellow-100 text-lg max-w-4xl mx-auto">
+                Enhanced player experience through reliable game analytics, faster incident resolution, 
+                and more time for your team to focus on high-value feature development and player engagement optimization.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Why SYNQ Section */}
         <div className="mt-12 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 rounded-3xl shadow-2xl overflow-hidden relative">
-          {/* Animated Background Elements */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-10 left-10 w-20 h-20 bg-blue-400 rounded-full animate-pulse"></div>
             <div className="absolute top-32 right-20 w-16 h-16 bg-green-400 rounded-full animate-pulse delay-1000"></div>
@@ -393,7 +477,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Databricks & Iceberg Support */}
+              {/* Databricks & Iceberg */}
               <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl p-8 border border-white border-opacity-20 hover:bg-opacity-15 transition-all duration-300">
                 <div className="flex items-center mb-6">
                   <div className="w-14 h-14 bg-gradient-to-r from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center mr-4">
@@ -422,7 +506,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Gaming-specific benefits */}
+            {/* Gaming Benefits */}
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-center">
               <h4 className="text-2xl font-bold text-white mb-4 flex items-center justify-center">
                 <Gamepad2 className="w-6 h-6 mr-3" />
@@ -450,15 +534,16 @@ export default function App() {
           </div>
         </div>
 
+        {/* Methodology Footer */}
         <div className="mt-8 bg-white rounded-2xl p-8 shadow-lg border border-slate-100">
           <div className="text-center">
             <div className="border-t border-slate-200 pt-6">
               <p className="text-slate-600 mb-2 text-center">
                 <strong>Methodology:</strong> Gaming industry calculations assume 65% reduction in data-related costs through proactive monitoring, 
-                automated incident resolution, and AI-powered data quality management
+                plus {inputs.productivityGainPercent}% productivity gains from automated incident resolution and AI-powered data quality management
               </p>
               <p className="text-sm text-slate-500 text-center">
-                Results based on gaming industry benchmarks and SYNQ customer success stories from leading data-driven gaming companies
+                Results based on gaming industry benchmarks, SYNQ customer success stories, and estimated business value of developer productivity gains
               </p>
             </div>
           </div>
