@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Calculator, TrendingUp, AlertTriangle, DollarSign, Users, BarChart3, Zap } from 'lucide-react';
+import {
+  Calculator, TrendingUp, AlertTriangle, DollarSign, Users, BarChart3, Zap
+} from 'lucide-react';
 
-// Input field component for reusability
+// Input field component
 const InputField = ({ label, value, onChange, placeholder, prefix = '', suffix = '', description = '' }) => (
   <div className="space-y-2">
     <label className="block text-sm font-semibold text-gray-800">{label}</label>
@@ -14,8 +16,10 @@ const InputField = ({ label, value, onChange, placeholder, prefix = '', suffix =
       )}
       <input
         type="number"
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value) || 0)}
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value === '' ? 0 : Number(e.target.value))}
         placeholder={placeholder}
         className={`w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white ${
           prefix ? 'pl-8' : ''
@@ -58,24 +62,35 @@ export default function App() {
     affectedDashboards: 0,
     dashboardDowntimeHours: 0,
     badDecisionCost: 0,
-    badDecisionsPerMonth: 0
+    badDecisionsPerMonth: 0,
+    synqContractCost: 0
   });
 
   const updateInput = (field, value) => {
     setInputs(prev => ({ ...prev, [field]: value }));
   };
 
-  const monthlyTeamCost = (inputs.dataTeamSize * inputs.averageSalary * (inputs.timeOnDataQuality / 100)) / 12;
-  const monthlyDashboardCost = inputs.affectedDashboards * inputs.dashboardDowntimeHours * (inputs.averageSalary / 12 / 160);
-  const monthlyBadDecisionCost = inputs.badDecisionsPerMonth * inputs.badDecisionCost;
+  const {
+    dataTeamSize, timeOnDataQuality, averageSalary,
+    affectedDashboards, dashboardDowntimeHours,
+    badDecisionCost, badDecisionsPerMonth,
+    synqContractCost
+  } = inputs;
+
+  const monthlyTeamCost = (dataTeamSize * averageSalary * (timeOnDataQuality / 100)) / 12;
+  const monthlyDashboardCost = affectedDashboards * dashboardDowntimeHours * (averageSalary / 12 / 160);
+  const monthlyBadDecisionCost = badDecisionsPerMonth * badDecisionCost;
+
   const totalMonthlyCost = monthlyTeamCost + monthlyDashboardCost + monthlyBadDecisionCost;
   const annualCost = totalMonthlyCost * 12;
   const monthlySavings = totalMonthlyCost * 0.5;
   const annualSavings = monthlySavings * 12;
+  const netAnnualImpact = annualSavings - synqContractCost;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Header */}
         <div className="text-center mb-12">
           <div className="flex justify-center mb-6">
             <div className="p-4 bg-gradient-to-r from-purple-500 to-blue-600 rounded-2xl shadow-lg">
@@ -86,7 +101,7 @@ export default function App() {
             Data Observability ROI Calculator
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Calculate the potential cost savings from implementing data observability solutions.
+            Calculate the potential cost savings from implementing data observability solutions. 
             <span className="block mt-2 text-lg text-purple-600 font-medium">
               Built for data teams delivering business-critical impact.
             </span>
@@ -94,139 +109,42 @@ export default function App() {
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
+          {/* Input Section */}
           <div className="space-y-6">
             <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
               <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
                 <Users className="w-6 h-6 mr-3 text-purple-600" />
                 Your Data Team
               </h2>
-              <div className="bg-gradient-to-br from-purple-50 to-blue-50 p-6 rounded-xl border border-purple-100 space-y-4">
-                <InputField
-                  label="How many people in your data team?"
-                  value={inputs.dataTeamSize}
-                  onChange={(value) => updateInput('dataTeamSize', value)}
-                  placeholder="e.g., 5"
-                  description="Include data engineers, analysts, and scientists"
-                />
-                <InputField
-                  label="% of time spent on data quality issues"
-                  value={inputs.timeOnDataQuality}
-                  onChange={(value) => updateInput('timeOnDataQuality', value)}
-                  placeholder="e.g., 30"
-                  suffix="%"
-                  description="Time debugging, fixing, and preventing data issues"
-                />
-                <InputField
-                  label="Average salary of team members"
-                  value={inputs.averageSalary}
-                  onChange={(value) => updateInput('averageSalary', value)}
-                  placeholder="100000"
-                  prefix="$"
-                  description="Annual salary including benefits and overhead"
-                />
+              <div className="space-y-6">
+                <InputField label="Team size" value={dataTeamSize} onChange={(v) => updateInput('dataTeamSize', v)} placeholder="e.g. 5" />
+                <InputField label="% time on data quality" value={timeOnDataQuality} onChange={(v) => updateInput('timeOnDataQuality', v)} placeholder="e.g. 30" suffix="%" />
+                <InputField label="Average salary" value={averageSalary} onChange={(v) => updateInput('averageSalary', v)} placeholder="e.g. 100000" prefix="$" />
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 space-y-6">
+            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
               <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
                 <BarChart3 className="w-6 h-6 mr-3 text-blue-600" />
                 Business Impact
               </h2>
-
-              <div className="bg-gradient-to-br from-orange-50 to-red-50 p-6 rounded-xl border border-orange-100 space-y-4">
-                <h3 className="font-semibold text-gray-800 flex items-center">
-                  <AlertTriangle className="w-5 h-5 mr-2 text-orange-500" />
-                  Dashboard & Report Failures
-                </h3>
-                <InputField
-                  label="Failed dashboards per month"
-                  value={inputs.affectedDashboards}
-                  onChange={(value) => updateInput('affectedDashboards', value)}
-                  placeholder="e.g., 8"
-                />
-                <InputField
-                  label="Average time to fix (hours)"
-                  value={inputs.dashboardDowntimeHours}
-                  onChange={(value) => updateInput('dashboardDowntimeHours', value)}
-                  placeholder="e.g., 3"
-                />
-              </div>
-
-              <div className="bg-gradient-to-br from-red-50 to-pink-50 p-6 rounded-xl border border-red-100 space-y-4">
-                <h3 className="font-semibold text-gray-800 flex items-center">
-                  <TrendingUp className="w-5 h-5 mr-2 text-red-500" />
-                  Business Decisions Based on Bad Data
-                </h3>
-                <InputField
-                  label="Bad decisions per month"
-                  value={inputs.badDecisionsPerMonth}
-                  onChange={(value) => updateInput('badDecisionsPerMonth', value)}
-                  placeholder="e.g., 2"
-                />
-                <InputField
-                  label="Average cost per bad decision"
-                  value={inputs.badDecisionCost}
-                  onChange={(value) => updateInput('badDecisionCost', value)}
-                  placeholder="e.g., 10000"
-                  prefix="$"
-                />
+              <div className="space-y-6">
+                <InputField label="Failed dashboards/mo" value={affectedDashboards} onChange={(v) => updateInput('affectedDashboards', v)} placeholder="e.g. 5" />
+                <InputField label="Downtime per dashboard (hrs)" value={dashboardDowntimeHours} onChange={(v) => updateInput('dashboardDowntimeHours', v)} placeholder="e.g. 2" />
+                <InputField label="Bad decisions/mo" value={badDecisionsPerMonth} onChange={(v) => updateInput('badDecisionsPerMonth', v)} placeholder="e.g. 2" />
+                <InputField label="Cost per bad decision" value={badDecisionCost} onChange={(v) => updateInput('badDecisionCost', v)} placeholder="e.g. 10000" prefix="$" />
+                <InputField label="SYNQ contract cost (annual)" value={synqContractCost} onChange={(v) => updateInput('synqContractCost', v)} placeholder="15000, 30000, or 60000" prefix="$" />
               </div>
             </div>
           </div>
 
+          {/* Results Section */}
           <div className="space-y-6">
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 space-y-4">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                <DollarSign className="w-6 h-6 mr-3 text-red-600" />
-                Current Costs
-              </h2>
-
-              <ResultCard
-                icon={Users}
-                title="Monthly Team Cost"
-                value={`$${monthlyTeamCost.toLocaleString()}`}
-                subtitle="Time spent on data quality issues"
-              />
-              <ResultCard
-                icon={AlertTriangle}
-                title="Monthly Total Cost"
-                value={`$${totalMonthlyCost.toLocaleString()}`}
-                subtitle="All data quality related costs"
-                gradient="from-red-500 to-pink-600"
-              />
-              <ResultCard
-                icon={TrendingUp}
-                title="Annual Total Cost"
-                value={`$${annualCost.toLocaleString()}`}
-                subtitle="Projected annual cost without observability"
-                gradient="from-orange-500 to-red-600"
-              />
-            </div>
-
-            <div className="bg-gradient-to-br from-purple-600 to-blue-700 rounded-2xl shadow-xl p-8 text-white relative overflow-hidden space-y-6">
-              <h2 className="text-2xl font-bold flex items-center">
-                <Zap className="w-6 h-6 mr-3" />
-                ROI with Data Observability
-              </h2>
-              <div>
-                <div className="text-sm opacity-90 mb-1">Monthly Savings (50% reduction)</div>
-                <div className="text-4xl font-bold">${monthlySavings.toLocaleString()}</div>
-              </div>
-              <div>
-                <div className="text-sm opacity-90 mb-1">Annual Savings</div>
-                <div className="text-5xl font-bold">${annualSavings.toLocaleString()}</div>
-              </div>
-            </div>
+            <ResultCard icon={DollarSign} title="Monthly Cost" value={`$${totalMonthlyCost.toLocaleString()}`} subtitle="Current monthly impact of data issues" />
+            <ResultCard icon={TrendingUp} title="Annual Cost" value={`$${annualCost.toLocaleString()}`} subtitle="Current annual cost of poor data quality" />
+            <ResultCard icon={Zap} title="Annual Savings (50%)" value={`$${annualSavings.toLocaleString()}`} subtitle="Potential cost savings with observability" />
+            <ResultCard icon={Calculator} title="Net Benefit After SYNQ" value={`$${netAnnualImpact.toLocaleString()}`} subtitle="Savings minus contract cost" gradient="from-green-500 to-teal-500" />
           </div>
-        </div>
-
-        <div className="mt-12 text-center bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
-          <p className="text-gray-600 mb-2">
-            <strong>Methodology:</strong> Calculations assume a 50% reduction in data-related costs with proper observability implementation
-          </p>
-          <p className="text-sm text-gray-500">
-            Results based on industry benchmarks and customer success stories from leading data observability platforms
-          </p>
         </div>
       </div>
     </div>
